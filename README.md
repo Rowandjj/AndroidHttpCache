@@ -105,7 +105,7 @@
 - 直接使用Square推出的`OkHttp`,google在4.0之后直接将`Okhttp`项目集成到了android项目中，作为`HttpUrlConnection`的实现引擎.
   而方案一中的`HttpResponseCache`也是依赖于`Okhttp`的，然而我们无法直接使用`Okhttp`因为它是`hide`的，使用的话需要单独依赖。
     
-    
+
     
 ##参考资料:
 
