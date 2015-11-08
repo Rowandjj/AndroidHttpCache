@@ -263,8 +263,10 @@ static boolean parseResponseSourceHeader(String header) {
 ```
 通过`parseResponseSourceHeader(connection.getHeaderField("X-Android-Response-Source"))`即可判定.
 
-
-
+## http cache的应用
+  像volley、picasso等开源库都利用了http缓存来作为DiskCache的方案。具体代码可参见Volley#HttpHeaderParser类以及
+  Picasso#URLConnectionDownloader类等.
+  
     
 ##参考资料:
 
