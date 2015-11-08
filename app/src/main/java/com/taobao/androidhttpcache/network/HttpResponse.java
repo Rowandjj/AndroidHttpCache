@@ -1,6 +1,6 @@
 package com.taobao.androidhttpcache.network;
 
-import java.io.InputStream;
+import android.graphics.Bitmap;
 
 /**
  * Created by rowandjj on 15/11/8.
@@ -8,13 +8,28 @@ import java.io.InputStream;
 @SuppressWarnings("unused")
 public class HttpResponse {
     private int responseCode;
-    private InputStream data;
+    private String data;
     private int contentLength;
+    private Bitmap bitmap;
 
-    public HttpResponse(int responseCode, InputStream data, int contentLength) {
+    public HttpResponse(int responseCode, String data, int contentLength,Bitmap bitmap) {
         this.responseCode = responseCode;
         this.data = data;
         this.contentLength = contentLength;
+        this.bitmap = bitmap;
+    }
+
+
+    public void setData(String data) {
+        this.data = data;
+    }
+
+    public Bitmap getBitmap() {
+        return bitmap;
+    }
+
+    public void setBitmap(Bitmap bitmap) {
+        this.bitmap = bitmap;
     }
 
     public int getResponseCode() {
@@ -23,14 +38,6 @@ public class HttpResponse {
 
     public void setResponseCode(int responseCode) {
         this.responseCode = responseCode;
-    }
-
-    public InputStream getData() {
-        return data;
-    }
-
-    public void setData(InputStream data) {
-        this.data = data;
     }
 
     public int getContentLength() {

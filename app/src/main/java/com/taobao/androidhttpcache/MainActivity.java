@@ -1,6 +1,5 @@
 package com.taobao.androidhttpcache;
 
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -15,10 +14,8 @@ import android.widget.TextView;
 import com.taobao.androidhttpcache.network.HttpResponse;
 import com.taobao.androidhttpcache.network.NetworkUtils;
 
-import java.io.IOException;
-
 public class MainActivity extends AppCompatActivity {
-    private static final String URL = "http://img.alicdn.com/bao/uploaded/i4/2433767071/TB2hL7dfXXXXXaeXXXXXXXXXXXX_!!2433767071-0-paimai.jpg";
+    public static final String URL = "http://img.alicdn.com/bao/uploaded/i4/2433767071/TB2hL7dfXXXXXaeXXXXXXXXXXXX_!!2433767071-0-paimai.jpg";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btn_cache).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                NetworkUtils.asyncGetResponse(MainActivity.this, Uri.parse(URL), NetworkUtils.Policy.Cache, new NetworkUtils.Callback() {
+                NetworkUtils.asyncGetBitmap(MainActivity.this, Uri.parse(URL), NetworkUtils.Policy.Cache, new NetworkUtils.Callback() {
                     @Override
                     public void call(HttpResponse response) {
                         if(response == null){
@@ -49,13 +46,8 @@ public class MainActivity extends AppCompatActivity {
                             return;
                         }
                         tv.setText("response code:" + response.getResponseCode() + ",len:" + response.getContentLength());
-                        if(response.getData() != null){
-                            iv.setImageBitmap(BitmapFactory.decodeStream(response.getData()));
-                            try {
-                                response.getData().close();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
+                        if(response.getBitmap() != null){
+                            iv.setImageBitmap(response.getBitmap());
                         }
                     }
                 });
@@ -65,7 +57,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btn_no_cache).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                NetworkUtils.asyncGetResponse(MainActivity.this, Uri.parse(URL), NetworkUtils.Policy.Network, new NetworkUtils.Callback() {
+                NetworkUtils.asyncGetBitmap(MainActivity.this, Uri.parse(URL), NetworkUtils.Policy.Network, new NetworkUtils.Callback() {
                     @Override
                     public void call(HttpResponse response) {
                         if(response == null){
@@ -73,13 +65,8 @@ public class MainActivity extends AppCompatActivity {
                             return;
                         }
                         tv.setText("response code:" + response.getResponseCode() + ",len:" + response.getContentLength());
-                        if(response.getData() != null){
-                            iv.setImageBitmap(BitmapFactory.decodeStream(response.getData()));
-                            try {
-                                response.getData().close();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
+                        if(response.getBitmap() != null){
+                            iv.setImageBitmap(response.getBitmap());
                         }
                     }
                 });
