@@ -82,7 +82,8 @@
     这两个首部通常结合使用。首先浏览器请求某个文档资源，服务端找到该资源，并在响应头中加上`Last-Modified`标识该资源最近
     一次改动的时间，浏览器收到响应后，将资源缓存。浏览器第二次访问此资源时，会先从缓存中寻找此资源，并将资源的`last-Modified`
     的日期值作为`if-Modified-Since`首部的值发往服务器，服务端拿到请求头后，将'if-Modified-Since'的日期值与该资源最近
-    一次改动时间进行比对，如果相同将直接返回304，说明可以复用该资源，否则重新请求，并根据请求结果，返回200或者4xx等。
+    一次改动时间进行比对，如果相同将直接返回304，说明可以复用该资源，否则重新请求，并根据请求结果，返回200或者4xx等。注：不是
+    所有的浏览器都支持`if-Modified-Since`字段
     
     举个栗子，比如我访问这个图片:
    
@@ -97,7 +98,11 @@
    
     第一次请求因为本地没有缓存副本，所以没有携带`if-Last-Modified`请求头，而服务端会将资源最后修改时间通过`Last-Modified`
     返回，第二次因为缓存了副本，所以会携带`if-Last-Modified`.而且从响应码也能看出来，第一次是200，第二次是304。
-    
+ 
+>区分缓存命中还是未命中有点"困难"，因为http没有为用户提供一种手段来区分响应是缓存命中的，还是访问原始服务器得到的。
+在这两种情况下，响应码都是200 ok。客户端有一种方法可以判断响应是否来自缓存，就是使用Date首部，将响应中Date首部的值
+和当前事件进行比较，如果响应中的日期值比较早，客户端通常就可以认为这是一条缓存的响应，或者客户端也可以通过Age首部来检测
+缓存的响应。
 
 ## android下的httpcache方案
 
@@ -109,8 +114,160 @@
   而方案一中的`HttpResponseCache`也是依赖于`Okhttp`的，然而我们无法直接使用`Okhttp`因为它是`hide`的，使用的话需要单独依赖。
     
 
+以android提供的`HttpResponseCache`为例说明。
+我的代码演示了如何使用`HttpResponseCache`缓存一张网络图片，`NetworkUtils`类提供了`getBitmap`和`asyncGetBitmap`方法，用于获取
+网络图片:
+
+代码1:NetworkUtils#getBitmap()
+```
+public static HttpResponse getBitmap(Context context,Uri uri,Policy policy){
+        if(uri == null){
+            throw new IllegalArgumentException("uri is null");
+        }
+        installCacheIfNeeded(context);
+        try {
+            HttpURLConnection connection = (HttpURLConnection) new URL(MainActivity.URL).openConnection();
+            connection.setConnectTimeout(DEFAULT_CONNECT_TIMEOUT);
+            connection.setReadTimeout(DEFAULT_READ_TIMEOUT);
+
+            if(policy == Policy.Cache){
+                connection.setUseCaches(true);
+            }else{
+                connection.setUseCaches(false);
+                connection.addRequestProperty("Cache-Control", "no-cache");
+                connection.addRequestProperty("Cache-Control","max-age=0");
+            }
+
+            int contentLen = connection.getContentLength();
+            int responseCode = connection.getResponseCode();
+            HttpResponse response = new HttpResponse(responseCode,null,contentLen, BitmapFactory.decodeStream(connection.getInputStream()));
+            connection.getInputStream().close();
+            return response;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+```
+
+这里面我通过客户端的设定`Policy`来判断是否需要缓存图片，如果不需要就设置`no-cache`头。`installCacheIfNeeded`方法
+用于初始化缓存,内部实际上调用了`HttpCache#install()`方法:
+
+
+代码2:HttpCache#install()
+```
+static HttpResponseCache install(Context context) {
+        if (context == null) {
+            throw new IllegalArgumentException("context must not be null");
+        }
+
+        File cacheDir = new File(context.getApplicationContext().getCacheDir(), CACHE_DIR);
+        if (!cacheDir.exists()) {
+            cacheDir.mkdirs();
+        }
+
+        HttpResponseCache cache = null;
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+            try {
+                if ((cache = HttpResponseCache.getInstalled()) != null) {
+                    return cache;
+                }
+                cache = HttpResponseCache.install(cacheDir, CACHE_SIZE);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Log.e(TAG, "http response installation failed,code = 0");
+            }
+        } else {
+            try {
+                if ((cache = (HttpResponseCache) Class.forName("android.net.http.HttpResponseCache").getMethod("getInstalled").invoke(null)) != null) {
+                    return cache;
+                }
+                Method method = Class.forName("android.net.http.HttpResponseCache").getMethod("install", File.class, long.class);
+                cache = (HttpResponseCache) method.invoke(null, cacheDir, CACHE_SIZE);
+            } catch (Exception e) {
+                e.printStackTrace();
+                Log.e(TAG, "http response installation failed,code = 1");
+            }
+        }
+        return cache;
+    }
+```
+
+我在MainActivity中编写了一个测试用例来分别测试了允许缓存和不允许缓存情况下的结果。加载的图片来自阿里cdn图片服务器，
+这里的图片的过期时间是一年，所以可以确保能够缓存。
+
+```
+Cache-Control:max-age=31536000
+Content-Type:image/jpeg
+Date:Thu, 22 Oct 2015 05:41:18 GMT
+Expires:Fri, 21 Oct 2016 05:41:18 GMT
+```
+
+测试结果很完美，在允许缓存的情况下，只需要第一次请求server，拿到数据后会缓存到本地预设的目录，以后的请求都会直接走
+缓存.
+
+![demo展示](imge/a2.png)
+
+
+我们来观察下缓存的数据格式，这里我预先设定了缓存目录位于包名`/cache/http/`下(相关代码参考HttpCache.java)，ddms打开这个
+目录，pull出来，发现三个文件，其中有个叫journal的，很显然，这是使用了`DiskLruCache`类,另外两个文件有一个大小是185458字节，
+肯定是这张图片，另一个文件用sublime打开后内容如下：
+
+```
+http://img.alicdn.com/bao/uploaded/i4/2433767071/TB2hL7dfXXXXXaeXXXXXXXXXXXX_!!2433767071-0-paimai.jpg
+GET
+0
+HTTP/1.1 200 OK
+18
+Server: Tengine
+Content-Type: image/jpeg
+Content-Length: 185458
+Connection: keep-alive
+Date: Thu, 22 Oct 2015 05:41:18 GMT
+Last-Modified: Sat, 12 Sep 2015 11:24:37 GMT
+Expires: Fri, 21 Oct 2016 05:41:18 GMT
+Cache-Control: max-age=31536000
+Access-Control-Allow-Origin: *
+Via: cache7.l2cm12[0,200-0,H], cache60.l2cm12[16,0], cache1.cn406[0,200-0,H], cache8.cn406[1,0]
+Age: 1501380
+X-Cache: HIT TCP_MEM_HIT dirn:2:377253066
+X-Swift-SaveTime: Sun, 08 Nov 2015 03:15:26 GMT
+X-Swift-CacheTime: 30075952
+Timing-Allow-Origin: *
+X-Android-Sent-Millis: 1446993858366
+X-Android-Received-Millis: 1446993858403
+X-Android-Response-Source: NETWORK 200
+```
+这其实是一个响应头，`X-Android-Response-Source`首部是由othttp追加的，可以判断响应数据是从disk cache拿的还是
+从网络拿的。代码如下:
+```
+//返回true说明从缓存拿的
+static boolean parseResponseSourceHeader(String header) {
+    if (header == null) {
+      return false;
+    }
+    String[] parts = header.split(" ", 2);
+    if ("CACHE".equals(parts[0])) {
+      return true;
+    }
+    if (parts.length == 1) {
+      return false;
+    }
+    try {
+      return "CONDITIONAL_CACHE".equals(parts[0]) && Integer.parseInt(parts[1]) == 304;
+    } catch (NumberFormatException e) {
+      return false;
+    }
+  }
+
+```
+通过`parseResponseSourceHeader(connection.getHeaderField("X-Android-Response-Source"))`即可判定.
+
+
+
     
 ##参考资料:
 
 1. [HTTP协议探索之Cache-Control](http://blog.csdn.net/chen_zw/article/details/18924875)
 2. [HTTP 缓存](https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/http-caching?hl=zh-cn)
+3. [HttpResponseCache](http://developer.android.com/intl/zh-cn/reference/android/net/http/HttpResponseCache.html)
