@@ -29,6 +29,7 @@
     请求到服务器取数据。
     
     `Cache-Control`可以设置如下值:
+   
     (1)Request：
     
     - no-cache  ---- 不要读取缓存中的文件，要求向WEB服务器重新请求,http1.0时代还有pragma: no-cache，与此效果一样.
@@ -52,11 +53,13 @@
     - no-transform   ---- 告知代理,不要更改媒体类型,比如jpg,被你改成png.
   
     
-    >注意:`Expires`首部的值是绝对时间，容易受本地时钟偏差影响，而`Cache-Control`是相对时间。因而，`Cache-Control`的
-    优先级高于`Expires`
     
-    最优的`Cache-Control`策略
-    ![最优的`Cache-Control`策略](imge/http-cache-decision-tree.png)
+>注意:`Expires`首部的值是绝对时间，容易受本地时钟偏差影响，而`Cache-Control`是相对时间。因而，`Cache-Control`的
+优先级高于`Expires`
+    
+- 最优的`Cache-Control`策略
+    
+![最优的`Cache-Control`策略](imge/http-cache-decision-tree.png)
             
 - ETag & If-None-Match
 
