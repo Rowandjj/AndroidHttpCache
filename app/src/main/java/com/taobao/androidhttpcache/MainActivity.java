@@ -11,8 +11,10 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.taobao.androidhttpcache.network.Callback;
 import com.taobao.androidhttpcache.network.HttpResponse;
 import com.taobao.androidhttpcache.network.NetworkUtils;
+import com.taobao.androidhttpcache.network.Policy;
 
 public class MainActivity extends AppCompatActivity {
     public static final String URL = "http://img.alicdn.com/bao/uploaded/i4/2433767071/TB2hL7dfXXXXXaeXXXXXXXXXXXX_!!2433767071-0-paimai.jpg";
@@ -38,38 +40,70 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btn_cache).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                NetworkUtils.asyncGetBitmap(MainActivity.this, Uri.parse(URL), NetworkUtils.Policy.Cache, new NetworkUtils.Callback() {
+                NetworkUtils.asyncGetBitmap(MainActivity.this, Uri.parse(URL), Policy.Cache, new Callback() {
                     @Override
                     public void call(HttpResponse response) {
-                        if(response == null){
+                        if (response == null) {
                             tv.setText("response is null...");
                             return;
                         }
                         tv.setText("response code:" + response.getResponseCode() + ",len:" + response.getContentLength());
-                        if(response.getBitmap() != null){
+                        if (response.getBitmap() != null) {
                             iv.setImageBitmap(response.getBitmap());
                         }
                     }
                 });
+
+
+//                OkHttpUtils.getInstance(MainActivity.this).asyncGetBitmap(Uri.parse(URL), Policy.Cache, new Callback() {
+//                    @Override
+//                    public void call(HttpResponse response) {
+//                        if (response == null) {
+//                            tv.setText("response is null...");
+//                            return;
+//                        }
+//                        tv.setText("response code:" + response.getResponseCode() + ",len:" + response.getContentLength());
+//                        if (response.getBitmap() != null) {
+//                            iv.setImageBitmap(response.getBitmap());
+//                        }
+//                    }
+//                });
             }
         });
 
         findViewById(R.id.btn_no_cache).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                NetworkUtils.asyncGetBitmap(MainActivity.this, Uri.parse(URL), NetworkUtils.Policy.Network, new NetworkUtils.Callback() {
+                //使用HttpUrlConnection
+                NetworkUtils.asyncGetBitmap(MainActivity.this, Uri.parse(URL), Policy.Network, new Callback() {
                     @Override
                     public void call(HttpResponse response) {
-                        if(response == null){
+                        if (response == null) {
                             tv.setText("response is null...");
                             return;
                         }
                         tv.setText("response code:" + response.getResponseCode() + ",len:" + response.getContentLength());
-                        if(response.getBitmap() != null){
+                        if (response.getBitmap() != null) {
                             iv.setImageBitmap(response.getBitmap());
                         }
                     }
                 });
+                //使用OkHttp
+//                OkHttpUtils.getInstance(MainActivity.this).asyncGetBitmap(Uri.parse(URL), Policy.Network, new Callback() {
+//                    @Override
+//                    public void call(HttpResponse response) {
+//                        if (response == null) {
+//                            tv.setText("response is null...");
+//                            return;
+//                        }
+//                        tv.setText("response code:" + response.getResponseCode() + ",len:" + response.getContentLength());
+//                        if (response.getBitmap() != null) {
+//                            iv.setImageBitmap(response.getBitmap());
+//                        }
+//                    }
+//                });
+
+
             }
         });
 

@@ -1,7 +1,7 @@
 # AndroidHttpCache
 
 >learn how to use http cache in android
-
+##github地址:https://github.com/Rowandjj/AndroidHttpCache
 
 ## 概述
 
@@ -212,7 +212,6 @@ Expires:Fri, 21 Oct 2016 05:41:18 GMT
 我们来观察下缓存的数据格式，这里我预先设定了缓存目录位于包名`/cache/http/`下(相关代码参考HttpCache.java)，ddms打开这个
 目录，pull出来，发现三个文件，其中有个叫journal的，很显然，这是使用了`DiskLruCache`类,另外两个文件有一个大小是185458字节，
 肯定是这张图片，另一个文件用sublime打开后内容如下：
-
 ```
 http://img.alicdn.com/bao/uploaded/i4/2433767071/TB2hL7dfXXXXXaeXXXXXXXXXXXX_!!2433767071-0-paimai.jpg
 GET
@@ -240,6 +239,7 @@ X-Android-Response-Source: NETWORK 200
 ```
 这其实是一个响应头，`X-Android-Response-Source`首部是由othttp追加的，可以判断响应数据是从disk cache拿的还是
 从网络拿的。代码如下:
+代码3:
 ```
 //返回true说明从缓存拿的
 static boolean parseResponseSourceHeader(String header) {
@@ -263,13 +263,40 @@ static boolean parseResponseSourceHeader(String header) {
 ```
 通过`parseResponseSourceHeader(connection.getHeaderField("X-Android-Response-Source"))`即可判定.
 
+如果使用`OkHttp`的话,缓存的控制更加方便,只需创建`OkHttpClient`实例的时候设置缓存即可。具体代码可以参考`OkHttpUtils`类.
+
+代码4：
+
+```
+ try {
+        mHttpClient.setCache(new Cache(new File(context.getApplicationContext().getCacheDir(), CACHE_DIR), CACHE_SIZE));
+    } catch (Exception e) {
+    }
+```
+
+缓存的策略选择可通过`CacheControl`来控制。
+
+代码5:
+```
+  CacheControl cacheControl;
+        if (policy == Policy.Cache) {
+            cacheControl = CacheControl.FORCE_CACHE;
+        } else {
+            CacheControl.Builder builder = new CacheControl.Builder();
+            cacheControl = builder.noCache().build();
+        }
+```
+
 ## http cache的应用
   像volley、picasso等开源库都利用了http缓存来作为DiskCache的方案。具体代码可参见Volley#HttpHeaderParser类以及
   Picasso#URLConnectionDownloader类等.
   
-    
+
 ##参考资料:
 
 1. [HTTP协议探索之Cache-Control](http://blog.csdn.net/chen_zw/article/details/18924875)
 2. [HTTP 缓存](https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/http-caching?hl=zh-cn)
 3. [HttpResponseCache](http://developer.android.com/intl/zh-cn/reference/android/net/http/HttpResponseCache.html)
+
+##联系我:
+如果有描述错误或不准确的，欢迎微博私信(@楚奕RJ)

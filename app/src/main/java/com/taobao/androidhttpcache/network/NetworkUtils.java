@@ -16,6 +16,8 @@ import java.net.URL;
 
 /**
  * Created by rowandjj on 15/11/8.
+ *
+ * HttpUrlConnection with Http Cache used.
  */
 @SuppressWarnings("unused")
 public class NetworkUtils {
@@ -27,15 +29,6 @@ public class NetworkUtils {
     private static final int DEFAULT_CONNECT_TIMEOUT = 10*1000;
     private static final int DEFAULT_READ_TIMEOUT = 10*1000;
 
-
-    public enum Policy{
-        Network,
-        Cache
-    }
-
-    public interface Callback{
-        public void call(HttpResponse response);
-    }
 
     public static void asyncGetBitmap(final Context context, final Uri uri, final Policy policy, final Callback callback){
         new AsyncTask<Void,Void,HttpResponse>(){
